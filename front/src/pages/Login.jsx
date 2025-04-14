@@ -86,8 +86,8 @@ const Login = () => {
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <LoginIcon sx={{ fontSize: 40, color: '#1a237e', mb: 2 }} />
-          <Typography component="h1" variant="h4" sx={{ mb: 3, color: '#1a237e', fontWeight: 'bold' }}>
+          <LoginIcon sx={{ fontSize: 40, color: '#FF385C', mb: 2 }} />
+          <Typography component="h1" variant="h4" sx={{ mb: 3, color: '#222222', fontWeight: 'bold' }}>
             Iniciar Sesión
           </Typography>
           
@@ -129,8 +129,8 @@ const Login = () => {
                 mt: 3, 
                 mb: 2, 
                 py: 1.5,
-                bgcolor: '#1a237e', 
-                '&:hover': { bgcolor: '#0d1b60' },
+                bgcolor: '#FF385C', 
+                '&:hover': { bgcolor: '#E31C5F' },
                 borderRadius: 2,
                 textTransform: 'none',
                 fontSize: '1rem'
@@ -141,7 +141,7 @@ const Login = () => {
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="body2">
                 ¿No tienes una cuenta?{' '}
-                <Link to="/register" style={{ color: '#1a237e', textDecoration: 'none', fontWeight: 'bold' }}>
+                <Link to="/register" style={{ color: '#FF385C', textDecoration: 'none', fontWeight: 'bold' }}>
                   Regístrate
                 </Link>
               </Typography>

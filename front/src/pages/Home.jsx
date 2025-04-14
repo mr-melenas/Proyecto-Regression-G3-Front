@@ -50,12 +50,22 @@ const Home = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-      <Box sx={{ textAlign: 'center', mb: 6 }}>
-        <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1a237e' }}>
+    <Container 
+      maxWidth="xl" 
+      sx={{ 
+        minHeight: '50px', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justifyContent: 'center', 
+        alignItems: 'center'
+         // Añadido padding-top para compensar el navbar fijo
+      }}
+    >
+      <Box sx={{ textAlign: 'center', mb: 4, maxWidth: 800 }}>
+        <Typography variant="h3" component="h2" gutterBottom sx={{ fontWeight: 'bold', color: '#222222' }}>
           Análisis Predictivo de AirBnB Madrid
         </Typography>
-        <Typography variant="h5" sx={{ color: '#424242', mb: 4 }}>
+        <Typography variant="h5" sx={{ color: '#424242', mb: 2 }}>
           Descubre datos y predicciones sobre alojamientos en Madrid
         </Typography>
       </Box>
@@ -65,13 +75,13 @@ const Home = () => {
         sx={{
           p: 4,
           width: '100%',
-          maxWidth: 600,
+          maxWidth: 500,
           borderRadius: 2,
           background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <Typography variant="h6" gutterBottom sx={{ mb: 3, color: '#1a237e' }}>
+        <Typography variant="h6" gutterBottom sx={{ mb: 2, color: '#222222' }}>
           Selecciona un barrio para comenzar
         </Typography>
         
@@ -98,8 +108,8 @@ const Home = () => {
           disabled={!neighborhood}
           startIcon={<SearchIcon />}
           sx={{ 
-            bgcolor: '#1a237e', 
-            '&:hover': { bgcolor: '#0d1b60' },
+            bgcolor: '#FF385C', 
+            '&:hover': { bgcolor: '#E31C5F' },
             py: 1.5,
             borderRadius: 2,
             textTransform: 'none',
