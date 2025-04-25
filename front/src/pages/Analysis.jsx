@@ -9,17 +9,11 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Button from '@mui/material/Button';
-import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
-import HomeIcon from '@mui/icons-material/Home';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import HotelIcon from '@mui/icons-material/Hotel';
-import StarIcon from '@mui/icons-material/Star';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import Navbar from '../components/Navbar';
 
@@ -32,6 +26,7 @@ const Analysis = () => {
   const [error, setError] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [predictions, setPredictions] = useState(null);
   
   // Obtener los valores de los filtros de la URL
   const searchParams = new URLSearchParams(location.search);
@@ -39,6 +34,7 @@ const Analysis = () => {
   const [selectedBathrooms, setSelectedBathrooms] = useState(searchParams.get('bathrooms') || '');
   const [selectedAccommodates, setSelectedAccommodates] = useState(searchParams.get('accommodates') || '');
   const [selectedRoomType, setSelectedRoomType] = useState(searchParams.get('roomType') || '');
+  const [neighborhoodEncoded, setNeighborhoodEncoded] = useState(searchParams.get('neighbourhood_encoded') || '0');
   
   // Mapeo de valores de tipo de habitación a etiquetas
   const roomTypeLabels = {
@@ -46,6 +42,46 @@ const Analysis = () => {
     'hotel_room': 'Habitación hotel',
     'private_room': 'Habitación privada',
     'shared_room': 'Habitación compartida'
+  };
+
+  // Mapeo de valores de tipo de habitación para la API
+  const roomTypeApiMapping = {
+    'entire_home': 'Entire home/apt',
+    'hotel_room': 'Hotel room',
+    'private_room': 'Private room',
+    'shared_room': 'Shared room'
+  };
+
+  // Función para realizar la predicción de precio
+  const predictPrice = async () => {
+    try {
+      // Preparar los datos para la predicción
+      const predictionData = {
+        accommodates: selectedAccommodates ? parseInt(selectedAccommodates) : 2,
+        bathrooms: selectedBathrooms ? parseFloat(selectedBathrooms) : 1,
+        beds: selectedBeds ? parseInt(selectedBeds) : 1,
+        room_type: selectedRoomType ? roomTypeApiMapping[selectedRoomType] : 'Entire home/apt',
+        neighbourhood_val: neighborhoodEncoded ? parseFloat(neighborhoodEncoded) : 0
+      };
+      
+      // Llamar a la API para obtener la predicción
+      const response = await axios.post('http://localhost:8000/api/predict', predictionData);
+      
+      // Guardar las predicciones
+      setPredictions(response.data);
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error al realizar la predicción:', error);
+      // Si hay un error, devolver predicciones simuladas
+      const mockPredictions = {
+        random_forest: 85,
+        xgboost: 95,
+        average: 90
+      };
+      setPredictions(mockPredictions);
+      return mockPredictions;
+    }
   };
 
   useEffect(() => {
@@ -56,6 +92,10 @@ const Analysis = () => {
     const fetchAnalysisData = async () => {
       try {
         setLoading(true);
+        
+        // Realizar la predicción de precio
+        const pricePredictions = await predictPrice();
+        
         // Construir la URL con todos los parámetros para la API
         let apiUrl = `/api/analysis/${neighborhood}`;
         const apiParams = new URLSearchParams();
@@ -72,7 +112,15 @@ const Analysis = () => {
         
         // Obtener datos de análisis del barrio con los filtros
         const response = await axios.get(apiUrl);
-        setAnalysisData(response.data);
+        
+        // Combinar los datos de análisis con las predicciones
+        const combinedData = {
+          ...response.data,
+          predictions: pricePredictions,
+          predictedPrice: pricePredictions.average
+        };
+        
+        setAnalysisData(combinedData);
         
         // Verificar si esta búsqueda está guardada (solo para usuarios logueados)
         if (user) {
@@ -104,7 +152,7 @@ const Analysis = () => {
     };
 
     fetchAnalysisData();
-  }, [neighborhood, selectedBeds, selectedBathrooms, selectedAccommodates, selectedRoomType]);
+  }, [neighborhood, selectedBeds, selectedBathrooms, selectedAccommodates, selectedRoomType, neighborhoodEncoded]);
 
   const handleSaveSearch = async () => {
     if (!isLoggedIn) {
@@ -125,7 +173,6 @@ const Analysis = () => {
 
       if (isSaved) {
         // Eliminar de guardados
-        // Nota: Aquí asumimos que hay un endpoint para obtener el ID de la búsqueda guardada
         const savedSearchesResponse = await axios.get(`/api/users/${userData.username}/searches`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -170,24 +217,12 @@ const Analysis = () => {
   // Datos de ejemplo para mostrar mientras se implementa la API real
   const mockData = {
     averagePrice: 85,
-    predictedPrice: 92,
-    totalListings: 243,
-    averageRating: 4.7,
-    priceRange: { min: 45, max: 250 },
-    popularAmenities: ['WiFi', 'Cocina', 'Calefacción', 'Aire acondicionado', 'Lavadora'],
-    occupancyRate: 78,
-    seasonalTrends: [
-      { season: 'Primavera', trend: 'Estable' },
-      { season: 'Verano', trend: 'Alta' },
-      { season: 'Otoño', trend: 'Media' },
-      { season: 'Invierno', trend: 'Baja' }
-    ],
-    priceFactors: [
-      { factor: 'Ubicación', impact: 'Alto' },
-      { factor: 'Tamaño', impact: 'Medio' },
-      { factor: 'Amenidades', impact: 'Medio' },
-      { factor: 'Temporada', impact: 'Alto' }
-    ]
+    predictedPrice: 90,
+    predictions: {
+      random_forest: 85,
+      xgboost: 95,
+      average: 90
+    }
   };
 
   // Ensure displayData has all required properties
@@ -195,6 +230,7 @@ const Analysis = () => {
     return {
       averagePrice: data?.averagePrice || 0,
       predictedPrice: data?.predictedPrice || 0,
+      predictions: data?.predictions || {},
       totalListings: data?.totalListings || 0,
       averageRating: data?.averageRating || 0,
       priceRange: {
@@ -214,13 +250,13 @@ const Analysis = () => {
   return (
     <>
       <Navbar />
-      {/* Barra de filtros seleccionados */}
+      {/* Barra de filtros seleccionados - Reducido el padding vertical */}
       <Box 
         sx={{ 
           width: '100%', 
           backgroundColor: '#f8f9fa',
           borderBottom: '1px solid #e0e0e0',
-          py: 2
+          py: 1 // Reducido de 2 a 1
         }}
       >
         <Container maxWidth="lg">
@@ -231,7 +267,7 @@ const Analysis = () => {
               justifyContent: 'center',
               backgroundColor: '#333',
               color: 'white',
-              p: 2,
+              p: 1.5, // Reducido de 2 a 1.5
               borderRadius: 1
             }}
           >
@@ -286,11 +322,12 @@ const Analysis = () => {
         </Container>
       </Box>
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Contenedor principal - Reducido el margen superior */}
+      <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}> {/* Reducido mt de 4 a 2 */}
         <ToastContainer position="top-center" autoClose={3000} />
         
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}> {/* Reducido mt de 8 a 4 */}
             <CircularProgress size={60} sx={{ color: '#1a237e' }} />
           </Box>
         ) : error ? (
@@ -314,208 +351,73 @@ const Analysis = () => {
           </Paper>
         ) : (
           <>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+            {/* Título y botón de guardar - Reducido el margen inferior */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}> {/* Reducido mb de 4 a 2 */}
               <Typography variant="h4" component="h1" sx={{ color: '#1a237e', fontWeight: 'bold' }}>
                 Análisis: {neighborhood}
               </Typography>
-              <Button
-                variant="outlined"
-                startIcon={isSaved ? <BookmarkIcon /> : <BookmarkBorderIcon />}
-                onClick={handleSaveSearch}
-                sx={{ 
-                  borderColor: '#1a237e', 
-                  color: '#1a237e',
-                  '&:hover': { borderColor: '#0d1b60', bgcolor: 'rgba(26, 35, 126, 0.1)' }
-                }}
-              >
-                {isSaved ? 'Guardado' : 'Guardar'}
-              </Button>
+              
+              {isLoggedIn && (
+                <Button
+                  variant="outlined"
+                  startIcon={isSaved ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                  onClick={handleSaveSearch}
+                  sx={{ 
+                    borderColor: '#1a237e', 
+                    color: '#1a237e',
+                    '&:hover': { borderColor: '#0d1b60', bgcolor: 'rgba(26, 35, 126, 0.1)' }
+                  }}
+                >
+                  {isSaved ? 'Guardado' : 'Guardar'}
+                </Button>
+              )}
             </Box>
 
-            <Grid container spacing={3}>
-              {/* Tarjetas de información principal */}
-              <Grid item xs={12} md={6} lg={3}>
-                <Card 
-                  elevation={4} 
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
-                    color: 'white'
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <AttachMoneyIcon sx={{ fontSize: 28, mr: 1 }} />
-                      <Typography variant="h6">Precio Medio</Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {formatPrice(displayData.averagePrice)}
-                    </Typography>
-                    <Typography variant="body2">
-                      Rango: {formatPrice(displayData.priceRange?.min || 0)} - {formatPrice(displayData.priceRange?.max || 0)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} md={6} lg={3}>
-                <Card 
-                  elevation={4} 
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg, #0d47a1 0%, #1565c0 100%)',
-                    color: 'white'
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <TrendingUpIcon sx={{ fontSize: 28, mr: 1 }} />
-                      <Typography variant="h6">Precio Predicho</Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {formatPrice(displayData.predictedPrice)}
-                    </Typography>
-                    <Typography variant="body2">
-                      {displayData.predictedPrice > displayData.averagePrice ? '↑' : '↓'} 
-                      {Math.abs(((displayData.predictedPrice - displayData.averagePrice) / displayData.averagePrice) * 100).toFixed(1)}% 
-                      respecto al actual
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} md={6} lg={3}>
-                <Card 
-                  elevation={4} 
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg, #00695c 0%, #00897b 100%)',
-                    color: 'white'
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <HomeIcon sx={{ fontSize: 28, mr: 1 }} />
-                      <Typography variant="h6">Alojamientos</Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {displayData.totalListings}
-                    </Typography>
-                    <Typography variant="body2">
-                      Tasa de ocupación: {displayData.occupancyRate}%
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} md={6} lg={3}>
-                <Card 
-                  elevation={4} 
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg, #c62828 0%, #d32f2f 100%)',
-                    color: 'white'
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <StarIcon sx={{ fontSize: 28, mr: 1 }} />
-                      <Typography variant="h6">Valoración Media</Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {displayData.averageRating}
-                    </Typography>
-                    <Typography variant="body2">
-                      De 5 estrellas
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Sección de análisis detallado */}
-              <Grid item xs={12}>
-                <Paper 
-                  elevation={4} 
-                  sx={{ 
-                    p: 3, 
-                    mt: 2,
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-                  }}
-                >
-                  <Typography variant="h5" sx={{ mb: 3, color: '#1a237e', fontWeight: 'bold' }}>
-                    Análisis Predictivo
-                  </Typography>
-                  
-                  <Grid container spacing={4}>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="h6" sx={{ mb: 2, color: '#1a237e' }}>
-                        Factores que Influyen en el Precio
-                      </Typography>
-                      <Box sx={{ mb: 3 }}>
-                        {displayData.priceFactors.map((factor, index) => (
-                          <Box key={index} sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                              <Typography variant="body1">{factor.factor}</Typography>
-                              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{factor.impact}</Typography>
-                            </Box>
-                            <Divider />
-                          </Box>
-                        ))}
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="h6" sx={{ mb: 2, color: '#1a237e' }}>
-                        Tendencias Estacionales
-                      </Typography>
-                      <Box sx={{ mb: 3 }}>
-                        {displayData.seasonalTrends.map((season, index) => (
-                          <Box key={index} sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                              <Typography variant="body1">{season.season}</Typography>
-                              <Typography 
-                                variant="body1" 
-                                sx={{ 
-                                  fontWeight: 'bold',
-                                  color: season.trend === 'Alta' ? '#2e7d32' : 
-                                         season.trend === 'Media' ? '#f57c00' : 
-                                         season.trend === 'Baja' ? '#c62828' : '#1565c0'
-                                }}
-                              >
-                                {season.trend}
-                              </Typography>
-                            </Box>
-                            <Divider />
-                          </Box>
-                        ))}
-                      </Box>
-                    </Grid>
-                  </Grid>
-                  
-                  <Typography variant="h6" sx={{ mt: 2, mb: 2, color: '#1a237e' }}>
-                    Amenidades Populares
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {displayData.popularAmenities.map((amenity, index) => (
-                      <Chip 
-                        key={index} 
-                        label={amenity} 
-                        sx={{ 
-                          bgcolor: '#e8eaf6', 
-                          color: '#1a237e',
-                          fontWeight: 'medium'
-                        }} 
-                      />
-                    ))}
+            {/* Tarjeta de Precio Predicho centrada */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+              <Card 
+                elevation={4} 
+                sx={{ 
+                  width: '100%',
+                  maxWidth: '400px',
+                  borderRadius: 2,
+                  background: 'linear-gradient(135deg, #0d47a1 0%, #1565c0 100%)',
+                  color: 'white'
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <TrendingUpIcon sx={{ fontSize: 28, mr: 1 }} />
+                    <Typography variant="h6">Precio Predicho</Typography>
                   </Box>
-                </Paper>
-              </Grid>
-            </Grid>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {formatPrice(displayData.predictedPrice)}
+                  </Typography>
+                  
+                  {/* Mostrar predicciones individuales de cada modelo */}
+                  {displayData.predictions && Object.keys(displayData.predictions).length > 0 && (
+                    <Box sx={{ mt: 2, mb: 2, p: 1, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Predicciones por modelo:
+                      </Typography>
+                      {Object.entries(displayData.predictions).map(([model, price]) => (
+                        model !== 'average' && (
+                          <Typography key={model} variant="body2" sx={{ mb: 0.5 }}>
+                            {model === 'random_forest' ? 'Random Forest' : model === 'xgboost' ? 'XGBoost' : model}: {formatPrice(price)}
+                          </Typography>
+                        )
+                      ))}
+                    </Box>
+                  )}
+                  
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    {displayData.predictedPrice > displayData.averagePrice ? '↑' : '↓'} 
+                    {Math.abs(((displayData.predictedPrice - displayData.averagePrice) / displayData.averagePrice) * 100).toFixed(1)}% 
+                    respecto al actual
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
           </>
         )}
       </Container>

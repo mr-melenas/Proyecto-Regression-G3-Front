@@ -16,6 +16,7 @@ import Navbar from '../components/Navbar';
 
 const Home = () => {
   const [neighborhood, setNeighborhood] = useState('');
+  const [neighborhoodEncoded, setNeighborhoodEncoded] = useState('');
   const [neighborhoods, setNeighborhoods] = useState([]);
   const [beds, setBeds] = useState([]);
   const [selectedBeds, setSelectedBeds] = useState('');
@@ -97,7 +98,14 @@ const Home = () => {
   }, []);
 
   const handleNeighborhoodChange = (event) => {
+    const selectedNeighborhood = neighborhoods.find(
+      item => item.neighbourhood_cleansed === event.target.value
+    );
+    
     setNeighborhood(event.target.value);
+    if (selectedNeighborhood) {
+      setNeighborhoodEncoded(selectedNeighborhood.neighbourhood_encoded);
+    }
   };
 
   const handleBedsChange = (event) => {
@@ -120,6 +128,9 @@ const Home = () => {
     if (neighborhood) {
       // Añadir los filtros a la navegación
       const queryParams = new URLSearchParams();
+      
+      // Añadir el neighbourhood_encoded como parámetro
+      queryParams.append('neighbourhood_encoded', neighborhoodEncoded);
       
       if (selectedBeds) queryParams.append('beds', selectedBeds);
       if (selectedBathrooms) queryParams.append('bathrooms', selectedBathrooms);
