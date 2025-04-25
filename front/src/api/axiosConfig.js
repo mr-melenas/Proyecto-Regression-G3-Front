@@ -42,4 +42,14 @@ api.interceptors.response.use(
   }
 );
 
+// Función para realizar predicciones
+api.predict = async (predictionData) => {
+  try {
+    const response = await api.post('/api/predict', predictionData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export default api;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import api from '../api/axiosConfig';  // Añade esta línea
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -72,27 +73,45 @@ const Analysis = () => {
         
         // Obtener datos de análisis del barrio con los filtros
         const response = await axios.get(apiUrl);
-        setAnalysisData(response.data);
         
-        // Verificar si esta búsqueda está guardada (solo para usuarios logueados)
-        if (user) {
-          const userData = JSON.parse(user);
-          const token = localStorage.getItem('token');
+        // Realizar la predicción
+        try {
+          // Mapeo de tipos de habitación al formato esperado por el backend
+          const roomTypeMapping = {
+            'entire_home': 'Entire home/apt',
+            'private_room': 'Private room',
+            'shared_room': 'Shared room',
+            'hotel_room': 'Hotel room'
+          };
+
+          const predictionData = {
+            neighborhood: neighborhood,
+            beds: selectedBeds ? parseInt(selectedBeds) : 1,
+            bathrooms: selectedBathrooms ? parseFloat(selectedBathrooms) : 1,
+            accommodates: selectedAccommodates ? parseInt(selectedAccommodates) : 1,
+            room_type: roomTypeMapping[selectedRoomType] || 'Entire home/apt'
+          };
+    
+          console.log('Datos de predicción enviados:', predictionData); // Para debugging
           
-          try {
-            const savedSearchesResponse = await axios.get(`/api/users/${userData.username}/searches`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            
-            // Comprobar si este barrio está en las búsquedas guardadas
-            const isNeighborhoodSaved = savedSearchesResponse.data.some(
-              search => search.neighborhood === neighborhood
-            );
-            
-            setIsSaved(isNeighborhoodSaved);
-          } catch (error) {
-            console.error('Error al verificar búsquedas guardadas:', error);
-          }
+          const predictionResponse = await axios.post('http://localhost:8000/api/predict', predictionData, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          // Combinar los datos de análisis con la predicción
+          const combinedData = {
+            ...response.data,
+            predictedPrice: predictionResponse.data.predicted_price || 0
+          };
+    
+          setAnalysisData(combinedData);
+    
+        } catch (predictionError) {
+          console.error('Error al obtener la predicción:', predictionError.response?.data || predictionError);
+          setAnalysisData(response.data);
+          toast.error('Error al obtener la predicción del precio. Por favor, verifica los datos ingresados.');
         }
         
         setLoading(false);
