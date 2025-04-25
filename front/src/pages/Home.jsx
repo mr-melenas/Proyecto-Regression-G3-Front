@@ -12,9 +12,11 @@ import SearchIcon from '@mui/icons-material/Search';
 import Container from '@mui/material/Container';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
+import Navbar from '../components/Navbar';
 
 const Home = () => {
   const [neighborhood, setNeighborhood] = useState('');
+  const [neighborhoodEncoded, setNeighborhoodEncoded] = useState('');
   const [neighborhoods, setNeighborhoods] = useState([]);
   const [beds, setBeds] = useState([]);
   const [selectedBeds, setSelectedBeds] = useState('');
@@ -22,9 +24,18 @@ const Home = () => {
   const [selectedBathrooms, setSelectedBathrooms] = useState('');
   const [accommodates, setAccommodates] = useState([]);
   const [selectedAccommodates, setSelectedAccommodates] = useState('');
+  const [selectedRoomType, setSelectedRoomType] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  // Tipos de habitación disponibles
+  const roomTypes = [
+    { value: 'entire_home', label: 'Casa/Apartamento' },
+    { value: 'hotel_room', label: 'Habitación hotel' },
+    { value: 'private_room', label: 'Habitación privada' },
+    { value: 'shared_room', label: 'Habitación compartida' }
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,7 +98,14 @@ const Home = () => {
   }, []);
 
   const handleNeighborhoodChange = (event) => {
+    const selectedNeighborhood = neighborhoods.find(
+      item => item.neighbourhood_cleansed === event.target.value
+    );
+    
     setNeighborhood(event.target.value);
+    if (selectedNeighborhood) {
+      setNeighborhoodEncoded(selectedNeighborhood.neighbourhood_encoded);
+    }
   };
 
   const handleBedsChange = (event) => {
@@ -102,228 +120,282 @@ const Home = () => {
     setSelectedAccommodates(event.target.value);
   };
 
+  const handleRoomTypeChange = (event) => {
+    setSelectedRoomType(event.target.value);
+  };
+
   const handleSearch = () => {
     if (neighborhood) {
-      // Puedes añadir los demás filtros a la navegación si es necesario
-      navigate(`/analysis/${neighborhood}`);
+      // Añadir los filtros a la navegación
+      const queryParams = new URLSearchParams();
+      
+      // Añadir el neighbourhood_encoded como parámetro
+      queryParams.append('neighbourhood_encoded', neighborhoodEncoded);
+      
+      if (selectedBeds) queryParams.append('beds', selectedBeds);
+      if (selectedBathrooms) queryParams.append('bathrooms', selectedBathrooms);
+      if (selectedAccommodates) queryParams.append('accommodates', selectedAccommodates);
+      if (selectedRoomType) queryParams.append('roomType', selectedRoomType);
+      
+      const queryString = queryParams.toString();
+      navigate(`/analysis/${neighborhood}${queryString ? `?${queryString}` : ''}`);
     }
   };
 
   return (
-    <Container 
-      maxWidth="xl" 
-      sx={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        py: 4,
-        backgroundColor: '#f8f9fa'
-      }}
-    >
-      <Box sx={{ textAlign: 'center', mb: 6, maxWidth: 800 }}>
-        <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#222222' }}>
-          Análisis Predictivo de AirBnB Madrid
-        </Typography>
-        <Typography variant="h5" sx={{ color: '#424242', mb: 2 }}>
-          Descubre datos y predicciones sobre alojamientos en Madrid
-        </Typography>
-      </Box>
-      
-      <Paper 
-        elevation={3} 
-        sx={{
-          p: 5,
-          width: '100%',
-          maxWidth: 700,
-          borderRadius: 3,
-          background: '#ffffff',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    <>
+      <Navbar />
+      <Container 
+        maxWidth="xl" 
+        sx={{ 
+          minHeight: 'calc(100vh - 64px)', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          py: 3,
+          backgroundColor: '#f8f9fa'
         }}
       >
-        <Typography variant="h5" gutterBottom sx={{ mb: 4, color: '#222222', textAlign: 'center' }}>
-          Selecciona los criterios para tu búsqueda
-        </Typography>
-        
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'medium' }}>
-            Barrio
+        <Box sx={{ textAlign: 'center', mb: 4, maxWidth: 800 }}> {/* Reducido el margen inferior de 6 a 4 */}
+          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#222222' }}> {/* Cambiado de h2 a h3 */}
+            Análisis Predictivo de AirBnB Madrid
           </Typography>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          ) : error ? (
-            <Typography color="error" sx={{ mt: 2 }}>
-              {error}. Usando lista predeterminada.
-            </Typography>
-          ) : (
-            <Select
-              fullWidth
-              displayEmpty
-              value={neighborhood}
-              onChange={handleNeighborhoodChange}
-              sx={{ 
-                height: 56, 
-                fontSize: '1rem',
-                '& .MuiSelect-select': { 
-                  display: 'flex', 
-                  alignItems: 'center' 
-                }
-              }}
-              renderValue={(selected) => {
-                if (!selected) {
-                  return <span style={{ color: '#757575' }}>Selecciona un barrio</span>;
-                }
-                return selected;
-              }}
-            >
-              {neighborhoods.map((item) => (
-                <MenuItem key={item.neighbourhood_encoded} value={item.neighbourhood_cleansed}>
-                  {item.neighbourhood_cleansed}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
+          <Typography variant="h5" sx={{ color: '#424242', mb: 2 }}>
+            Descubre datos y predicciones sobre alojamientos en Madrid
+          </Typography>
         </Box>
         
-        <Grid container spacing={4} sx={{ mb: 4 }}>
-          <Grid item xs={4}>
-            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'medium' }}>
+        <Paper 
+          elevation={3} 
+          sx={{
+            p: 5,
+            width: '100%',
+            maxWidth: 700,
+            borderRadius: 3,
+            background: '#ffffff',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          }}
+        >
+       
+          <Box sx={{ mb: 4 }}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : error ? (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {error}. Usando lista predeterminada.
+              </Typography>
+            ) : (
+              <Select
+                fullWidth
+                displayEmpty
+                value={neighborhood}
+                onChange={handleNeighborhoodChange}
+                sx={{ 
+                  height: 56, 
+                  fontSize: '1rem',
+                  '& .MuiSelect-select': { 
+                    display: 'flex', 
+                    alignItems: 'center' 
+                  }
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <span style={{ color: '#757575' }}>Selecciona un barrio</span>;
+                  }
+                  return selected;
+                }}
+              >
+                {neighborhoods.map((item) => (
+                  <MenuItem key={item.neighbourhood_encoded} value={item.neighbourhood_cleansed}>
+                    {item.neighbourhood_cleansed}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
+          </Box>
+          
+          {/* Etiquetas para los filtros */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'medium', width: '25%' }}>
               Camas.
             </Typography>
-            <Select
-              fullWidth
-              displayEmpty
-              value={selectedBeds}
-              onChange={handleBedsChange}
-              sx={{ 
-                height: 56, 
-                fontSize: '1rem',
-                '& .MuiSelect-select': { 
-                  display: 'flex', 
-                  alignItems: 'center' 
-                }
-              }}
-              renderValue={(selected) => {
-                if (!selected) {
-                  return <span style={{ color: '#757575' }}>H.</span>;
-                }
-                return selected;
-              }}
-            >
-              <MenuItem value="">Cualquiera</MenuItem>
-              {beds.length > 0 ? (
-                beds.map((item) => (
-                  <MenuItem key={item} value={item}>{item}</MenuItem>
-                ))
-              ) : (
-                [1, 2, 3, 4, 5].map((item) => (
-                  <MenuItem key={item} value={item}>{item}</MenuItem>
-                ))
-              )}
-            </Select>
-          </Grid>
-          
-          <Grid item xs={4}>
-            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'medium' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'medium', width: '25%' }}>
               Baños.
             </Typography>
-            <Select
-              fullWidth
-              displayEmpty
-              value={selectedBathrooms}
-              onChange={handleBathroomsChange}
-              sx={{ 
-                height: 56, 
-                fontSize: '1rem',
-                '& .MuiSelect-select': { 
-                  display: 'flex', 
-                  alignItems: 'center' 
-                }
-              }}
-              renderValue={(selected) => {
-                if (!selected) {
-                  return <span style={{ color: '#757575' }}>B.</span>;
-                }
-                return selected;
-              }}
-            >
-              <MenuItem value="">Cualquiera</MenuItem>
-              {bathrooms.length > 0 ? (
-                bathrooms.map((item) => (
-                  <MenuItem key={item} value={item}>{item}</MenuItem>
-                ))
-              ) : (
-                [1, 1.5, 2, 2.5, 3].map((item) => (
-                  <MenuItem key={item} value={item}>{item}</MenuItem>
-                ))
-              )}
-            </Select>
-          </Grid>
-          
-          <Grid item xs={4}>
-            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'medium' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'medium', width: '25%' }}>
               Viajeros.
             </Typography>
-            <Select
-              fullWidth
-              displayEmpty
-              value={selectedAccommodates}
-              onChange={handleAccommodatesChange}
+            <Typography variant="subtitle1" sx={{ fontWeight: 'medium', width: '25%' }}>
+              Tipo Hab.
+            </Typography>
+          </Box>
+          
+          {/* Desplegables en una fila sin espaciado */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+            {/* Selector de Camas */}
+            <Box sx={{ width: '24%' }}>
+              <Select
+                fullWidth
+                displayEmpty
+                value={selectedBeds}
+                onChange={handleBedsChange}
+                sx={{ 
+                  height: 56, 
+                  fontSize: '1rem',
+                  '& .MuiSelect-select': { 
+                    display: 'flex', 
+                    alignItems: 'center' 
+                  }
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <span style={{ color: '#757575' }}>H.</span>;
+                  }
+                  return selected;
+                }}
+              >
+                <MenuItem value="">Cualquiera</MenuItem>
+                {beds.length > 0 ? (
+                  beds.map((item) => (
+                    <MenuItem key={item} value={item}>{item}</MenuItem>
+                  ))
+                ) : (
+                  [1, 2, 3, 4, 5].map((item) => (
+                    <MenuItem key={item} value={item}>{item}</MenuItem>
+                  ))
+                )}
+              </Select>
+            </Box>
+            
+            {/* Selector de Baños */}
+            <Box sx={{ width: '24%' }}>
+              <Select
+                fullWidth
+                displayEmpty
+                value={selectedBathrooms}
+                onChange={handleBathroomsChange}
+                sx={{ 
+                  height: 56, 
+                  fontSize: '1rem',
+                  '& .MuiSelect-select': { 
+                    display: 'flex', 
+                    alignItems: 'center' 
+                  }
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <span style={{ color: '#757575' }}>B.</span>;
+                  }
+                  return selected;
+                }}
+              >
+                <MenuItem value="">Cualquiera</MenuItem>
+                {bathrooms.length > 0 ? (
+                  bathrooms.map((item) => (
+                    <MenuItem key={item} value={item}>{item}</MenuItem>
+                  ))
+                ) : (
+                  [1, 1.5, 2, 2.5, 3].map((item) => (
+                    <MenuItem key={item} value={item}>{item}</MenuItem>
+                  ))
+                )}
+              </Select>
+            </Box>
+            
+            {/* Selector de Viajeros */}
+            <Box sx={{ width: '24%' }}>
+              <Select
+                fullWidth
+                displayEmpty
+                value={selectedAccommodates}
+                onChange={handleAccommodatesChange}
+                sx={{ 
+                  height: 56, 
+                  fontSize: '1rem',
+                  '& .MuiSelect-select': { 
+                    display: 'flex', 
+                    alignItems: 'center' 
+                  }
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <span style={{ color: '#757575' }}>V.</span>;
+                  }
+                  return selected;
+                }}
+              >
+                <MenuItem value="">Cualquiera</MenuItem>
+                {accommodates.length > 0 ? (
+                  accommodates.map((item) => (
+                    <MenuItem key={item} value={item}>{item}</MenuItem>
+                  ))
+                ) : (
+                  [1, 2, 3, 4, 5, 6].map((item) => (
+                    <MenuItem key={item} value={item}>{item}</MenuItem>
+                  ))
+                )}
+              </Select>
+            </Box>
+            
+            {/* Selector de Tipo de Habitación */}
+            <Box sx={{ width: '24%' }}>
+              <Select
+                fullWidth
+                displayEmpty
+                value={selectedRoomType}
+                onChange={handleRoomTypeChange}
+                sx={{ 
+                  height: 56, 
+                  fontSize: '1rem',
+                  '& .MuiSelect-select': { 
+                    display: 'flex', 
+                    alignItems: 'center' 
+                  }
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <span style={{ color: '#757575' }}>T.</span>;
+                  }
+                  return roomTypes.find(type => type.value === selected)?.label.substring(0, 5) || selected;
+                }}
+              >
+                <MenuItem value="">Cualquiera</MenuItem>
+                {roomTypes.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Button 
+              variant="contained" 
+              size="large"
+              onClick={handleSearch}
+              disabled={!neighborhood || loading}
+              startIcon={<SearchIcon />}
               sx={{ 
-                height: 56, 
-                fontSize: '1rem',
-                '& .MuiSelect-select': { 
-                  display: 'flex', 
-                  alignItems: 'center' 
-                }
-              }}
-              renderValue={(selected) => {
-                if (!selected) {
-                  return <span style={{ color: '#757575' }}>V.</span>;
-                }
-                return selected;
+                bgcolor: '#FF385C', 
+                '&:hover': { bgcolor: '#E31C5F' },
+                py: 1.5,
+                px: 4,
+                borderRadius: 8,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                minWidth: 180
               }}
             >
-              <MenuItem value="">Cualquiera</MenuItem>
-              {accommodates.length > 0 ? (
-                accommodates.map((item) => (
-                  <MenuItem key={item} value={item}>{item}</MenuItem>
-                ))
-              ) : (
-                [1, 2, 3, 4, 5, 6].map((item) => (
-                  <MenuItem key={item} value={item}>{item}</MenuItem>
-                ))
-              )}
-            </Select>
-          </Grid>
-        </Grid>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <Button 
-            variant="contained" 
-            size="large"
-            onClick={handleSearch}
-            disabled={!neighborhood || loading}
-            startIcon={<SearchIcon />}
-            sx={{ 
-              bgcolor: '#FF385C', 
-              '&:hover': { bgcolor: '#E31C5F' },
-              py: 1.5,
-              px: 4,
-              borderRadius: 8,
-              textTransform: 'none',
-              fontSize: '1.1rem',
-              minWidth: 180
-            }}
-          >
-            Buscar
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+              Buscar
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
+    </>
   );
 };
 
