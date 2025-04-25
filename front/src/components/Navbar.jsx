@@ -13,6 +13,9 @@ import BookmarkIcon from '@mui/icons-material/Bookmark';
 import Divider from '@mui/material/Divider';
 import Container from '@mui/material/Container';
 
+import HomeIcon from '@mui/icons-material/Home';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
