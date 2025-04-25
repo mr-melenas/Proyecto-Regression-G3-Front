@@ -5,4 +5,18 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: './', // Esto es crucial para el despliegue en Vercel
+  build: {
+    rollupOptions: {
+      external: ['react', 'react-dom'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM'
+        }
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['react-router-dom', 'react-toastify', '@mui/material', '@mui/icons-material', 'axios']
+  }
 })
